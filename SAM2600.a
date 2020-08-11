@@ -1,0 +1,647 @@
+	processor 6502
+        include "vcs.h"
+        include "macro.h"
+        include "xmacro.h"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Variables segment
+
+        seg.u Variables
+	org $80
+
+VOX_FLAG_FRICTAVE 	= $80
+VOX_FLAG_UNVOICED 	= $40
+VOX_FLAG_MIXING		= $20
+VOX_VBL_LINES 		= 37	; 3 + VOX_VBL_LINES + active + VOX_BLANKING_LINES = 262
+VOX_OVERSCAN_LINES 	= 20	; uses last pair of lines before vbl
+VOX_ACTIVE_LINES	= 262-(3 + VOX_VBL_LINES + VOX_OVERSCAN_LINES)
+
+; 33 bytes, not all are strictly necessary
+; first 5 are VOX_BLEND[0..4] are expendable outside vbl
+
+VOX_BLEND	ds 15	; triple buffer of blended values
+VOX_TEMP	equ VOX_BLEND + 4
+VOX_FLAGS	.byte
+VOX_PHONEME	.byte
+VOX_COUNTER	.byte
+VOX_RUN_MIX	.byte
+VOX_MIX_FRAC	.byte
+VOX_MIX_STEP	.byte
+VOX_PTR		.word
+
+; render
+VOX_F1 		.byte
+VOX_F2 		.byte
+VOX_P1 		.byte
+VOX_P2 		.byte
+VOX_PITCH	.byte
+VOX_PITCH_COUNTER .byte
+VOX_VOLPTR_1	.word
+VOX_VOLPTR_2	.word
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; test app state
+
+LinePairCounter	.byte
+Mouth		.byte
+MouthV		.byte
+MouthPos	.byte
+MouthEnd	.byte
+
+EyePos		.byte
+EyeEnd		.byte
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Code segment
+
+	seg Code
+        org $f000
+
+Start
+
+	CLEAN_START
+        jsr vox_reset
+        lda #1
+        sta CTRLPF	; symmetry
+        
+        lda #1
+        sta COLUPF	; fg color
+        lda #$0E
+        sta COLUBK	; bg color
+
+
+;=============================================================
+
+NextFrame
+        lsr SWCHB	; test Game Reset switch
+        bcc Start	; reset?
+	
+        jsr vox_task		; retuns # of line pairs to do in vblank
+        jsr vox_line_loop	; do remaining vblank pairs
+        
+;	ready to draw lines of active video
+;	should arrive here early on v:-1
+
+	lda #0
+       	sta VBLANK
+        
+;	Map phoneme to mouth
+	lda VOX_FLAGS
+	and #VOX_FLAG_MIXING
+        bne .blank		; update mouth on run
+        lda VOX_PHONEME
+        lsr
+        tax
+        lda phoneme2mouth,x
+        bcs .mask
+      	lsr
+        lsr
+        lsr
+        lsr
+.mask	and #$0F
+	sta Mouth		; now displaying this mouth
+
+.blank	lda #24
+        jsr vox_line_loop	; blank lines at top
+
+;	Draw a centered mouth in playfield
+        ldx Mouth
+        lda sprite2_pos,x
+        sta MouthPos
+       	lda sprite2_pos+1,x
+        sta MouthEnd
+        sec
+        sbc MouthPos
+        lsr
+        eor #$FF
+        adc #18
+        sta MouthV	; line index place to display
+        
+	lda #0
+        sta LinePairCounter
+eyeloop
+	jsr vox_sample	; 1 line of audio, does a WSYNC on entry
+	sta WSYNC
+        lda LinePairCounter
+        cmp #40/2
+        beq .gap
+        lsr
+	tax
+        lda sprite1_pf2,x
+        sta PF2
+	inc LinePairCounter
+	bne eyeloop
+.gap
+
+;=============================================================
+	; mouth
+        
+       	lda #(VOX_ACTIVE_LINES-24-42)/2
+        sta LinePairCounter
+drawloop
+	jsr vox_sample	; 1 line of audio, does a WSYNC on entry
+	sta WSYNC
+                
+        lda LinePairCounter
+        and #1
+        bne .next
+        
+        ; single line of drawing here
+        dec MouthV
+        bpl .next
+	ldx MouthPos
+        cpx MouthEnd
+        bcc .draw
+.clr
+	lda #0
+        sta PF2
+        sta PF1
+        beq .next
+.draw
+        inc MouthPos
+        lda sprite2_pf1,x
+        sta PF1
+        lda sprite2_pf2,x
+        sta PF2
+.next   
+	dec LinePairCounter
+	bne drawloop
+
+;=============================================================
+; 	VOX_OVERSCAN_LINES lines of overscan
+
+	lda #2
+       	sta VBLANK
+	lda #VOX_OVERSCAN_LINES
+        jsr vox_line_loop
+        
+;	262 lines
+        jmp NextFrame
+        
+;=============================================================
+;=============================================================
+
+phoneme2mouth
+    hex 00000232332433345433331175101111
+    hex 11671111611111003333550001111111
+    hex 11000111111111700000000000000000
+
+sprite1_pos	; eye
+	hex 0009
+sprite1_pf2
+	hex 1C2221213D3B3F3F1E00
+
+sprite2_pos
+    hex 000916273b495d697c00000000000000
+
+sprite2_pf1
+    hex 0004080f10000000000018302f040402
+    hex 0100000000000010203e4f0808060703
+    hex 03010000000000003060501c0f040602
+    hex 03030301010100000000000000000000
+    hex 00000000000000000000000000000000
+    hex 00000000000000000000000000002040
+    hex fca31008080403060800040c17040406
+    hex 07070303030301010000000000000000
+
+sprite2_pf2
+    hex 00000003fc000020c000000003fc0000
+    hex 010ef00018e00000000007f80000ffff
+    hex ff1f07ff0608f0000000000003fe0000
+    hex 07ffffffffffff870efcf000c0e0f0f0
+    hex f0f0f0f0e0c00010e000e01000e0f0f0
+    hex f8fcfffcf8f8f8f830e00010e0000000
+    hex 0001fe0000000ff00000000003fe0000
+    hex 01ffff0f03078ffffffefce000000000
+
+;=============================================================
+;=============================================================
+;	vox engine
+;=============================================================
+;=============================================================
+
+    	include "speech.inc"
+
+vox_reset
+        lda	#<speech
+        sta	VOX_PTR+0
+        lda	#>speech
+        sta	VOX_PTR+1
+        lda	#1
+        sta	VOX_COUNTER
+        lda	#0
+        sta	VOX_FLAGS
+        sta	VOX_RUN_MIX
+        lda	#>vox_vol
+        sta	VOX_VOLPTR_1+1
+        sta	VOX_VOLPTR_2+1
+	rts
+        
+        ; draw blank lines maintaining vox_sample/WSYNC cadence
+vox_line_loop
+	lsr		; 2x, called on odd line
+	sta VOX_TEMP
+.lp	jsr vox_sample
+        sta WSYNC 	; time to do things here
+        dec VOX_TEMP
+	bne .lp
+        rts
+                
+        ; vox_task - runs vbl and updates state of player
+        ; task will take a certain number of lines to complete
+        ; returns # of remaining vblank lines
+        ; 37 - no phase change or mixing
+        ; 31 - phase change
+        ; 19 - phase change and mixing
+        
+vox_task
+;	3 lines of VSYNC then step vox_task
+;	Pairs of lines maintain vox_sample/WSYNC order
+	lda 	#2
+        sta 	WSYNC		; should be on v:211
+        sta 	VSYNC		; start vsync
+        jsr 	vox_sample_nw	; first sample of new frame
+        sta 	WSYNC		; user line
+        jsr 	vox_sample	; second sample of new frame
+        lda	#0
+        sta 	WSYNC
+        sta	VSYNC		; always at H:-62, V:-37
+                
+;	VSYNC done, update state of engine
+        ldx	#VOX_VBL_LINES  ; # of lines
+        dec	VOX_COUNTER	; time for new phase?
+        beq	.phase_change
+        jmp	.linez		; no phase change, proceed to blend
+        
+.phase_change
+	TIMER_SETUP 7		; start in v:-37
+
+	lda	VOX_FLAGS
+        lda	#VOX_FLAG_MIXING
+        and	VOX_FLAGS
+        bne	.chkrun
+   	
+        ; transitioning from mix->run
+        lda	VOX_RUN_MIX
+        and	#$07		; 5:3 run:mix
+        sta	VOX_COUNTER
+        tax
+        lda	vox_mix,x
+        sta	VOX_MIX_STEP	; VOX_MIX_STEP = vox_mix[VOX_COUNTER]
+        lda	#0
+        sta	VOX_MIX_FRAC
+        
+        ; copy last blendable params, including pitch
+        ldx	#4
+.shift	lda	VOX_BLEND+10,x
+	sta	VOX_BLEND+5,x
+        dex
+        bpl	.shift
+        inx	; x = 0
+
+	; Get next frame record from the stream,  2 or 3 bytes
+        ; get_byte can be fancy and page etc
+        
+.load   jsr	.get_byte
+        sta	VOX_PHONEME        
+        rol
+        bcc	.2
+        lsr			; high bit indicates pitch change
+	sta	VOX_PHONEME
+	jsr	.get_byte	; update pitch
+        sta	VOX_BLEND+14
+        
+.2	lda	VOX_PHONEME	; check for zero runs, specials
+	sec
+        sbc	#80
+        bmi	.3		; 80-111 repesent silence runs
+        asl
+        asl
+        asl
+        sta	VOX_RUN_MIX	; 
+        lda	#0
+        sta	VOX_PHONEME	; formant zero means silence
+        beq	.unpack		; always
+        
+.3	jsr	.get_byte	; run | mix
+        sta	VOX_RUN_MIX
+        
+        ; Unpack new params
+.unpack ldx	VOX_PHONEME
+        lda	vox_f1,x
+        and	#$7F		; mask off unvoiced flag
+        sta	VOX_BLEND+10	; VOX_BLEND[10] = vox_f1[x] & 0x7F
+        lda	vox_f2,x
+        and	#$7F		; mask off frictave flag
+        sta	VOX_BLEND+11	; VOX_BLEND[11] = vox_f2[x] & 0x7F
+
+	lda	vox_amp,x
+        and	#$F0
+        lsr
+        sta	VOX_BLEND+12 	; VOX_BLEND[12] = (vox_amp[x] & 0xF0) >> 1
+        lda	vox_amp,x
+        and	#$0F
+        asl
+        asl
+        asl
+        sta	VOX_BLEND+13 	; VOX_BLEND[13] = (vox_amp[x] & 0x0F) << 3
+        			; VOX_BLEND[14] has pitch
+        lda	VOX_FLAGS
+        and	#$BF		; clear unvoiced flag
+        ora	#VOX_FLAG_MIXING
+        sta	VOX_FLAGS	; Now we are mixing
+
+.chkrun
+        ; check if we need to transition into run
+        ; VOX_COUNTER == 0 && (VOX_FLAGS & VOX_FLAG_MIXING)
+	lda	VOX_COUNTER
+	bne	.align
+        
+        ; transitioning from run->mix
+        lda	VOX_RUN_MIX
+   	lsr			; VOX_COUNTER = VOX_RUN_MIX >> 3;
+        lsr
+        lsr
+	sta	VOX_COUNTER	;
+        ldx	VOX_PHONEME	; if VOX_PHONEME == 0
+        lda	vox_f2,x	;
+        rol			; high bit of f2 is frictive flag
+        lda	vox_f1,x	; high bit in formant table indicates unvoiced
+        ror
+        and	#$C0
+        sta	VOX_FLAGS   	; VOX_FLAG_UNVOICED, VOX_FLAG_FRICTAVE
+        ldx	#10
+        jsr	vox_sound   	; use new params to run sound
+       
+       	; phase change has happened params are all updated,
+        ; align to a WSYNC again
+        
+.align
+        lda 	INTIM		; enough time for more exotic get_bytes
+        bne 	.align
+        ldx	#(VOX_VBL_LINES-6)	; early in h:-20 v:-31
+
+.linez
+        lda	VOX_FLAGS
+        and	#VOX_FLAG_MIXING
+        bne	.mixings
+        txa			; # of lines
+        rts			; returns # of lines used early v:-31,-37
+        
+        ; interleaving blending if required
+.mixings
+	txa
+        pha
+        clc			; in
+        lda 	VOX_MIX_FRAC
+        adc	VOX_MIX_STEP
+        sta	VOX_MIX_FRAC	; VOX_MIX_FRAC += VOX_MIX_STEP
+        ;
+        jsr	vox_sample	; 6 samples 12 lines in total
+        lda	#$10		;
+        jsr	vox_blend	; blend 5 values in 4 steps
+        lda	#$20
+        jsr	vox_blend
+        lda	#$40
+        jsr	vox_blend
+        lda	#$80
+        jsr	vox_blend	; each step has 2 WSYNCs        
+       	ldx	#0
+        jsr	vox_sound   	; use params to make a new sounds
+        jsr	vox_sample	; 12 lines in total
+        sta	WSYNC		; now eary in odd line
+
+        pla			; # of lines
+        sec
+        sbc 	#12		; we just used 12 of them
+	rts			; h:-60 v:-19,-25
+        
+;=============================================================
+;=============================================================
+;	tricky/fancy paging logic would happen here
+;	20/24 clocks
+;	00 -> end of sequence
+;	50..7F -> pause of 1..48 vbl frames
+
+.get_byte
+        lda	(VOX_PTR),x
+        beq	.1
+        inc	VOX_PTR
+        bne	.0
+        inc	VOX_PTR+1
+.0	rts
+
+;	got a zero in the bitstream
+;	nomally trigger a state change
+;	just reset for now
+
+.1	; jsr next_sentence
+	jsr	vox_reset
+	jmp 	.get_byte
+
+;=============================================================
+;=============================================================
+;	Turn (interpolated) params at x into sounds
+;	needs to be under 70 clocks
+vox_sound
+	ldy	VOX_PHONEME
+        lda	vox_unvoiced_divider-32,y; Get freq divider for noise
+        sta	AUDF1
+        
+        bit	VOX_FLAGS	; check VOX_FLAG_UNVOICED
+        bvc	.voiced
+        
+        ; unvoiced, use hw to drive noise
+        lda	#0
+        sta	VOX_F1	; flag unvoiced for vox_sample
+        cpy	#45	; TODO? remap to make table tigher
+        bcc	.fok	; VOX_PHONEME > 45?
+        lda	#2	; plosive
+        sta	AUDF1	; P2,T2 fixup as vox_unvoiced_divider is too small
+.fok    lda	#8
+        sta	AUDC1
+        lda	VOX_BLEND+2,x
+        lsr
+        lsr
+        lsr
+        sta	AUDV1
+        rts
+       
+.voiced
+	; voiced, use wavetable samples + frictave noise
+        lda	#0
+        sta 	AUDC1		; use volume to make sound
+        
+        lda 	VOX_BLEND+0,x	; f1
+	sta	VOX_F1
+        lsr
+        eor	#$FF
+        adc	VOX_BLEND+4,x
+        sta	VOX_PITCH 	; VOX_BLEND+4 - (VOX_F1 >> 1)
+        
+	lda 	VOX_BLEND+1,x	; f2
+	sta	VOX_F2
+        lda 	VOX_BLEND+2,x	; a1
+        and	#$F0
+	sta	VOX_VOLPTR_1
+        lda 	VOX_BLEND+3,x	; a2
+        and	#$F0
+	sta	VOX_VOLPTR_2
+        rts
+        
+;=============================================================
+;=============================================================
+;	blends two values together (5x) based on fraction in VOX_MIX_FRAC
+;	call with mask in accumulator 0x80,0x40,0x20,0x10 etc
+;	until the desired blend quality is reached
+;	sliced like this to fit < 76 clocks (68 or 74 to be exact)
+
+vox_blend
+        ldy	#5
+	and	VOX_MIX_FRAC
+        beq	.blend
+        ldy	#10
+.blend	
+	lda	VOX_BLEND+0
+	adc 	VOX_BLEND+0,y
+	asr	#$FE
+	sta 	VOX_BLEND+0
+        
+	lda	VOX_BLEND+1
+	adc 	VOX_BLEND+1,y
+	asr	#$FE
+	sta 	VOX_BLEND+1
+        
+        lda	VOX_BLEND+2
+	adc 	VOX_BLEND+2,y
+	asr	#$FE
+	sta 	VOX_BLEND+2
+        
+        lda	VOX_BLEND+3
+	adc 	VOX_BLEND+3,y
+	asr	#$FE
+	sta 	VOX_BLEND+3
+        
+        lda	VOX_BLEND+4
+	adc 	VOX_BLEND+4,y
+	asr	#$FE
+	sta 	VOX_BLEND+4
+       ;; FALL THROUGH INTO vox_sample!
+
+;=============================================================
+;=============================================================
+;	produce a sample, get back in time, 3+64 clocks
+
+vox_sample
+	sta WSYNC
+vox_sample_nw		; start here to skip WSYNC
+	lda VOX_F1	; freq of f1 == 0 if unvoiced
+        beq .done	; unvoiced can return very early in the line
+        dec VOX_PITCH_COUNTER
+        beq .glottal	; end of glottal pulse
+        
+        ;clc		; some noise from carry won't hurt much
+        adc VOX_P1	;
+        sta VOX_P1
+        lsr		; smaller sin table 
+        tax
+        ldy vox_sin,x	; y now has sample 1
+        lda VOX_F2
+        adc VOX_P2
+        sta VOX_P2
+        asr #$FE	; smaller sin table (128 vs 256) (lsr,clc)
+        		; could also go to 64
+        tax		;
+        lda (VOX_VOLPTR_1),y	; apply volume sample 1
+        ldy vox_sin,x		; y now has sample 2
+        adc (VOX_VOLPTR_1),y	; apply volume sample 2
+	lsr
+        sta AUDV1	; merge to single Channel
+.done   
+	rts		; 3+64 clocks here
+
+	; glottal stop is simulated with a phase change
+.glottal
+        lda #0
+        sta VOX_P1
+        sta VOX_P2	; reset phase
+	lda VOX_PITCH	; reset pitch counter
+        sta VOX_PITCH_COUNTER
+
+	; Add noise at end of glottal pulses on voiced fricatives
+	lda VOX_FLAGS
+        bpl .done        
+	eor #$08
+        sta VOX_FLAGS
+        sta AUDC1	; alternate between samples and noise
+        and #$08
+        beq .done
+        
+	lda VOX_PITCH	; short noise pulse, listen to the ZZZZs
+        lsr
+        lsr
+        sta VOX_PITCH_COUNTER ; VOX_PITCH/4
+	rts		; 64 clocks here
+                
+;=============================================================
+;=============================================================
+       
+vox_unvoiced_divider
+    hex 03040606050880818383000400040000
+
+	align $100
+;	vox_vol must be first in page
+vox_vol
+    hex 00000000000000000000000000000000
+    hex 00000000000000010101010101010202
+    hex 00000000010101020202020303030404
+    hex 00000001010202030303040405050606
+    hex 00000101020203040405050606070808
+    hex 00000102020304050506070708090a0a
+    hex 0000010203040506060708090a0b0c0c
+    hex 000102030405060708090a0b0c0d0e0f
+
+vox_sin
+    hex 0808080909090A0A0A0B0B0B0C0C0C0C
+    hex 0D0D0D0D0D0E0E0E0E0E0E0E0E0E0E0E
+    hex 0E0E0E0E0E0E0E0E0E0E0E0D0D0D0D0D
+    hex 0C0C0C0C0B0B0B0A0A0A090909080808
+    hex 07070706060605050504040403030303
+    hex 02020202020101010101010101010101
+    hex 01010101010101010101010202020202
+    hex 03030303040404050505060606070707
+
+vox_f1
+    hex 0010101010080c0f151613110e110c0f
+    hex 0c0f0f0e0a0c080f0c0807050505050e
+    hex 858585858c8e07080708058505040500
+    hex 0f1611160f0a05050505050505050505
+    hex 05050585050585050508080505052610
+
+vox_f2
+    hex 003a3a3a3a493f3a3623261a1f263f2a
+    hex 1f1a2b1f183b152b1a1548282f4b2f3a
+    hex 4045163a4020acbaa3a945453ac56000
+    hex 3f211a241a1d1616163a3a3a60606049
+    hex 49491616163a3a3a5f4b5f4949496f6f
+
+vox_amp
+    hex 0000000000DADBEDFEFDFCFCFBC9DBCB
+    hex FCFCDCD8D8ECD8CAD8D8DAC399960000
+    hex 11110000000051525152001110520A22
+    hex EEFDFCFDFCD820410020410010410010
+    hex 410000000000110000CA00000A00F0F0
+
+vox_mix
+    hex ff7f553f332a241f1c19171513121100
+
+;=============================================================
+;=============================================================
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Epilogue
+
+	org $fffc
+        .word Start	; reset vector
+        .word Start	; BRK vector
+

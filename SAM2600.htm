@@ -1,0 +1,1383 @@
+
+<!DOCTYPE html>
+<html>
+<title>SAM2600</title>
+<style>
+
+body {
+    background-color:#F8F8F8;
+    font-family:"Open Sans","Helvetica Neue",Helvetica;
+    font-weight: 300;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+canvas {
+    border:none;
+    padding: 0px;
+    margin:0px;
+    transform-origin: 0px 2px;
+}
+
+nav {
+    border: solid 1px #CCC;
+    background: #CCF;
+}
+ul {
+    list-style-type: none;
+    border:none;
+    margin: 0px;
+    padding: 0px;
+}
+li {
+    font-size: x-small;
+}
+li:hover {
+    background-color: yellow;
+    filter: brightness(200%);
+}
+li .recovered {
+    filter: brightness(75%);
+}
+li .isdir {
+    filter: brightness(125%);
+}
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 300;
+}
+h2 {
+    font-size: 30px;
+}
+#gl {
+    border: solid 1px #C00;
+}
+canvas {
+  image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+  image-rendering: -webkit-optimize-contrast; /* Safari                        */
+  image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+  image-rendering: pixelated;                 /* Awesome future-browsers       */
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+}
+
+td {
+    border: solid 8px #F8F8F8;
+    padding: 16px;
+    margin: 16px;
+    background: #23A;
+    color: #FFF;
+    font-weight: 500;
+}
+.sw {
+    background: #A32;
+}
+.hw {
+    background: #3A2;
+}
+
+.over {
+  border: 2px dashed #F00;
+}
+
+.info {
+    min-height: 32px;
+    padding: 8px;
+    border-bottom: 1px solid #CCC;
+    font-size: small;
+}
+.infof {
+    min-height: 32px;
+    padding: 8px;
+    border-bottom: 1px solid #CCC;
+    font-size: small;
+    overflow: hidden;
+}
+
+.close-icon
+{
+  display:block;
+  box-sizing:border-box;
+  width:12px;
+  height:12px;
+  border-width:2px;
+  border-style: solid;
+  border-color:gray;
+  border-radius:100%;
+  background: -webkit-linear-gradient(-45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%), -webkit-linear-gradient(45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%);
+  background-color:gray;
+  transition: all 0.3s ease;
+  margin: 4px;
+  float:right;
+}
+
+.close-icon:hover {
+    border-color:red;
+    background-color:red;
+}
+.radio {
+    user-select: none;
+    cursor: pointer;
+    font-size: small;
+    height:16px;
+    margin-left: 12px;
+    margin-right: 12px;
+    margin-top:4px;
+}
+.radio:last-child  {
+    margin-right: 0px;
+}
+.radio span {
+    border: 1px solid #CCC;
+    padding-left: 12px;
+    padding-right: 12px;
+    vertical-align: top;
+}
+.hilite {
+    background: #CCF;
+}
+.exts {
+    font-weight: 300;
+    padding: 4px;
+    margin: 4px;
+    font-size: small;
+    width:600px;
+}
+.exts b {
+    display: inline-block;
+    margin-right: 16px;
+    width : 140px;
+    text-align:right;
+}
+.open {
+    display: inline-block;
+    font-size: large;
+    cursor: pointer;
+    width: 200px;
+    border: solid 1px #CCC;
+    font-weight: 300;
+    margin: 20px;
+    color: #AAA;
+}
+.open:hover {
+    color: #888;
+    border: solid 1px #888;
+}
+.open:active {
+    color: #FFF;
+    border: solid 1px #FFF;
+}
+.showcode {
+    cursor: pointer;
+    font-size: x-small;
+    height:16px;
+    padding: 2px 4px;
+    margin-left: 12px;
+    margin-right: 12px;
+    margin-top:4px;
+    border: solid 1px #CCC;
+}
+.showcode:hover {
+    color: #F00;
+    border: solid 1px #F00;
+}
+
+.palette {
+    margin-left: 8px;
+    display: inline-block;
+}
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top:16px;
+    background: #CCC;
+    min-width: 288px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+    z-index: 100;
+    margin: 0px;
+    padding: 0px;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.acolor {
+    display: inline-block;
+    min-width: 16px;
+    min-height: 16px;
+    border: solid 1px #CCC;
+    vertical-align: bottom;
+}
+.acolor:hover {
+    border: solid 1px #FFF;
+}
+
+.atari {
+    font-family: 'Atari';
+    font-size:16px;
+    line-height:16px;
+    background: #153382;
+    color: #B5D3FF;
+}
+
+#atari_text {
+    padding: 4px;
+}
+
+pre {
+    padding: 8px;
+    font-size: 10px;
+}
+
+pre data {
+    font-size:8px;
+    font-weight: normal;
+    background: #153382;
+    color: #B5D3FF;
+}
+
+.floater {
+    position: fixed;
+    z-index: 10;
+    cursor: pointer;
+    user-select: none;
+    line-height: 16px;
+    letter-spacing: 0px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+}
+
+.floater span:hover {
+    filter: brightness(200%);
+}
+
+.floater span:active {
+    background: #B5D3FF;
+    color: #153382;
+}
+
+.disassembly {
+    left: 24px;
+    top: 384px;
+    width: 492px;
+    max-height: 384px;
+    overflow: scroll;
+    background: #EEE;
+}
+
+.draggable {
+    width: 100%;
+    padding: 4px 8px;
+    background: #CCF;
+    border: solid 1px #CCC;
+    font-size: small;
+    font-weight: bold;
+}
+
+.tools {
+    width: 20px;
+    height: 84px;
+    left: 0px;
+    top: 320px;
+    text-align:center;
+}
+
+.dimmed {
+    filter: brightness(75%);
+}
+
+.keyboard {
+    display: none;
+    left: 24px;
+    top: 320px;
+    height: 256px;
+    width: 256px;
+        z-index: 11;
+}
+
+.keyboard_invert {
+    font-family:"Open Sans","Helvetica Neue",Helvetica;
+    text-align: center;
+    vertical-align: center;
+    color:#000;
+    font-size: x-small;
+    background: #F8F8F8;
+}
+.keyboard_invert:hover{
+    background: #CCF;
+}
+
+#sliders{
+    margin: 8px;
+    padding: 8px;
+    display: inline-block;
+}
+
+#sliders em {
+    display: inline-block;
+    width: 100px;
+}
+#sliders input {
+    display: inline-block;
+    width: 256px;
+}
+
+#presets {
+    margin: 8px;
+    padding: 8px;
+    user-select: none;
+    display: inline-block;
+}
+
+#presets b {
+    display: inline-block;
+    width: 128px;
+    text-align: center;
+    border: solid 1px #CCC;
+    color: #666;
+    padding: 4px;
+    margin: 4px;
+}
+#presets b:hover {
+    background: #CCF;
+    color: #222;
+}
+
+#examples {
+    margin: 16px;
+    padding: 8px;
+    user-select: none;
+    text-align: center;
+}
+#examples b {
+    display: inline-block;
+    width: 128px;
+    text-align: center;
+    border: solid 1px #CCC;
+    color: #666;
+    padding: 4px;
+    margin: 4px;
+}
+#examples b:hover {
+    background: #CCF;
+    color: #222;
+}
+
+.console {
+    padding: 4px;
+}
+.console pre {
+    border: solid 1px #CCC;
+    font-size: medium;
+    min-width: 800px;
+    max-width: 800px;
+    overflow: scroll;
+    white-space: pre-line;
+}
+
+</style>
+<script>
+var _ajax = function(m,u,c,d) {
+    var x = new XMLHttpRequest;
+    x.onreadystatechange=function(){x.readyState^4||c(this)};
+    x.open(m,u);
+    if (d) {
+        x.setRequestHeader('Content-Type', 'application/json');
+        d = JSON.stringify(d);
+    }
+    x.send(d);
+};
+
+var _q = function(q) {
+    return document.querySelector(q)
+};
+
+var _h = function(q,html) {
+    var e = _q(q);
+    if (!e) {
+        console.log("_h can't find " + q);
+        return null;
+    }
+    return e.innerHTML = html;
+};
+
+var _txt = function(q) {
+    return _q(q).innerText;
+};
+
+function stop()
+{
+    event.preventDefault();
+    event.stopPropagation();
+}
+
+function get(url,cb,d)
+{
+    _ajax(d ? "post":"get",url,function(r) {
+        var o = JSON.parse(r.responseText);
+        cb(JSON.parse(r.responseText));
+    },d);
+}
+
+function save_bytes(name, data)
+{
+    var blob = new Blob([data], {type: "application/data"});
+    var link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = name;
+    link.click();
+};
+
+var _hex = "0123456789ABCDEF";
+function hex(i,len)
+{
+    var s = '';
+    if (!len)
+        len = 2;
+    while(len--)
+        s += _hex[(i >> (len*4)) & 0xF];
+    return s;
+}
+
+function escapestr(c)
+{
+    switch (c) {
+        case "<": return "&lt;"
+        case ">": return "&gt;"
+    }
+    return c;
+}
+
+function esc(s)
+{
+    var n = '';
+    for (var i = 0; i < s.length; i++)
+        n+= escapestr(s.charAt(i));
+    return n;
+}
+
+function hex_line(addr,data,i,len,awidth)
+{
+    var s = [hex(addr,awidth || 6) + "   "];
+    var p = '';
+    var left = addr & 15;
+    var right = (16-((addr + len) & 15)) & 15;
+    if (left) {
+        p += `<span style='background:#CCC'>${' '.repeat(left-1)} </span>`;
+        s.push('   '.repeat(left));
+    }
+    while (len--) {
+        var j = data[i];
+        p += String.fromCharCode(j + 0xE000);
+        s.push(hex(data[i++],2) + " ");
+    }
+    if (right) {
+        p += `<span style='background:#CCC'>${' '.repeat(right-1)} </span>`;
+        s.push('   '.repeat(right));
+    }
+    return s.join('') + "  <data>" + p + "</data>";
+}
+
+function hex_dump(a,i,len,awidth)
+{
+    var hex = [];
+    for (var j = 0; j < len; j += 16)
+        hex.push(hex_line(j,a,i+j,Math.min(16,len-j),awidth));
+    return hex.join("\n");
+}
+
+//===================================================================================================
+//===================================================================================================
+// UI
+
+function set_class(el,cname,on)
+{
+    if (on)
+        el.classList.add(cname);
+    else
+        el.classList.remove(cname);
+}
+
+// Simple radio and check buttons
+var _radios = {};
+var _checks = {};
+function radio_init(name,values,value)
+{
+    var cur = _radios[name] ? _radios[name].value : 0;
+    value = value || cur;
+    var s = '';
+    for (var i = 0; i < values.length; i++)
+        s += `<span onclick="radio_click('${name}',${i})" ${i == value ? "class='hilite'" : ""}>${values[i]}</span>`;
+    _radios[name] = {values:values,value:value};
+    return s;
+}
+
+function radio_click(name,n)
+{
+    var v = _radios[name];
+    if (n != -1 && n != v.value) {
+        v.value = n;
+        radio_changed(name,n);
+    }
+}
+
+function radio_changed(name,v)
+{
+    switch (name) {
+        case "layout":
+        case "dither":
+        case "scheme":
+        case "distance":
+            refresh();
+            break;
+    }
+}
+
+function check_init(name,dname)
+{
+    _checks[name] = _checks[name] || 0;
+    var cur = _checks[name] ? _checks[name] : 0;
+    return `<span onclick="check_click('${name}')" ${cur ? "class='hilite'" : ""}>${dname}</span>`;
+}
+
+function check_click(name,n)
+{
+    _checks[name] ^= 1;
+    check_changed(name,_checks[name]);
+}
+
+function check_changed(name,v)
+{
+    switch (name) {
+        case "indent":
+        case "multicolor":
+            refresh();
+            break;
+    }
+}
+
+//===================================================================================================
+//===================================================================================================
+//  Drag and drop
+
+function drop_init(el,onfile,all_done)
+{
+    function over(b)
+    {
+        set_class(_q("#toc"),"over",b);
+    }
+
+    function handleFiles(files)
+    {
+        function readAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onerror = reject;
+                fr.onload = function(evt) {
+                    onfile(file,evt.target.result);
+                    resolve(fr.result);
+                }
+                fr.readAsArrayBuffer(file);
+            });
+        }
+
+        // Load all the files, callback when done
+        Promise.all(Array.prototype.map.call(files,readAsArrayBuffer))
+        .then(urls => {
+            all_done();
+        })
+        .catch(error => {
+            console.log(error);
+        });
+    }
+
+    function handleFileSelect(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        over(0);
+        handleFiles(evt.dataTransfer.files);
+
+        // check for dragged urls of images
+        var items = evt.dataTransfer.items;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].kind == 'string' && items[i].type == 'text/uri-list') {
+                items[i].getAsString(s => console.log(s));  // cross origin will make this useless
+            }
+        }
+    }
+
+    function handleDragOver(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+    }
+    el.addEventListener('dragover', handleDragOver, false);
+    el.addEventListener('drop', handleFileSelect, false);
+    el.addEventListener('dragenter', e => over(1), false);
+    el.addEventListener('dragleave', e => over(0), false);
+
+    _q("#fe").addEventListener("change", e => handleFiles(_q("#fe").files), false);
+}
+
+//===================================================================================================
+//===================================================================================================
+
+function le16(a,i)
+{
+    return a[i] | ((a[i+1]) << 8);
+}
+
+function le24(a,i)
+{
+    return a[i] | ((a[i+1]) << 8) | ((a[i+2]) << 16);
+}
+
+function le32(a,i)
+{
+    return a[i] | ((a[i+1]) << 8) | ((a[i+2]) << 16) | ((a[i+3]) << 24);
+}
+
+function is_zero(d,i,len)
+{
+    while (len--)
+        if (d[i++])
+            return false;
+    return true;
+}
+
+function toAscii(a,i,len)
+{
+    var s = '';
+    while (len--)
+        s += String.fromCharCode(a[i++]);
+    return s;
+}
+
+function err(e)
+{
+    _m("#err","#toc",{err:e});
+}
+
+var _shown;
+function save(as_lst)
+{
+    var f = _shown;
+    if (as_lst)
+    {
+        var data = get_ataritext();
+        var n = f.name;
+        if (n.substr(n.length-4).toLowerCase() == ".bas")
+            n = n.substr(0,n.length-4);     // trim ".BAS"
+        save_bytes(n+".LST",data);
+    } else if (f.packed_img) {
+        if (f.rgb)
+            save_bytes(f.name+".rgb",f.rgb);
+        else
+            save_bytes(f.name+"."+f.ext,f.packed_img);
+    } else
+        save_bytes(f.name,f.data);
+}
+
+// #153382 - BG 0x94
+
+function open()
+{
+    _q("#fe").click();
+}
+
+function update_sliders()
+{
+    ["pitch","speed","mouth","throat"].forEach(n => {
+        _q("#"+n+"_").innerText = n + " " + _q("#"+n).value;
+    });
+}
+
+function load()
+{
+    drop_init(_q("#toc"),
+        (file,ab) => {
+            if (file.type.indexOf("image")!= -1)
+                _images.push({file:file,data:new Uint8Array(ab)});
+            else
+                load_data(file.name,new Uint8Array(ab))
+        },
+        () => {
+            flush_images();
+            refresh_containers();
+        }
+    );
+
+    ["pitch","speed","mouth","throat"].forEach(n => _q("#"+n).onchange = update_sliders);
+
+    document.body.onkeyup = function (e) {
+    }
+
+    //document.onselectionchange = selection_change;
+
+    document.body.onkeydown = function (e) {
+        if (e.ctrlKey && e.shiftKey) {
+            switch (e.key) {
+                case 'o':
+                case 'O':
+                    open();
+                    break;  // open a file....
+                case 'h':
+                case 'H':
+                    toggle_hex();
+                    break;  // toggle hex display
+                case 'k':
+                case 'K':
+                    toggle_kb();
+                    break;  // toggle keyboard
+            }
+        }
+    };
+    update_sliders();
+
+    // show some examples
+    var ex = [];
+    for (var n in _examples)
+        ex.push("<b>" + n + "</b>");
+    _q("#examples").innerHTML = ex.join("<br>");
+}
+
+function toggle(eid)
+{
+    var e = _q(eid);
+    e.style.display = e.style.display == "none" ? "block" : "none";
+}
+
+function draggable(el,name)
+{
+    var x0,y0;
+    el.querySelector('.draggable').innerText = name;
+    el.onmousedown = (e) => {
+        e.preventDefault();
+        x0 = e.clientX;
+        y0 = e.clientY;
+        document.onmouseup = () => {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+        document.onmousemove = (e) => {
+            e.preventDefault();
+            var x = x0 - e.clientX;
+            var y = y0 - e.clientY;
+            x0 = e.clientX;
+            y0 = e.clientY;
+            el.style.left = (el.offsetLeft - x) + "px";
+            el.style.top = (el.offsetTop - y) + "px";
+        }
+    }
+}
+
+var _llog = [];
+function log_reset()
+{
+    _q("#log").innerText = '';
+    _llog = [];
+}
+
+function log_(s)
+{
+    _llog.push(s);
+}
+
+function log_flush()
+{
+    _q("#log").innerText += _llog.join("");
+    _llog = [];
+}
+
+//======================================================================================
+//======================================================================================
+// Translate familiar words using dictionary.
+// Basically patches phonemes after a text translation
+
+var _dict = 0;
+function dictionary_patch(text,phonemes)
+{
+    if (!_dict)
+        _dict = dictionary();
+
+    function translate_line(t,p)
+    {
+        var line = [];
+        for (var i = 0; i < t.length; i++) {
+            var txt = t[i].trim();
+            line.push({
+                original:txt,
+                t:txt,
+                p:p[i],
+                d:_dict[txt.toLowerCase()]
+            });
+        }
+        return line;
+    }
+
+    var a = [];
+    for (var i = 0; i < text.length; i++) {
+        var t = text[i].split(" ");     // words
+        var p = phonemes[i].split(" "); // words
+        a.push(translate_line(t,p));
+    }
+
+    // structure contains original and translated text
+    // Generate translated text + html with fancy rollovers
+    var txt = [];
+    var phn = [];
+    for (var i = 0; i < a.length; i++) {
+        var line = a[i];
+        var t = [];
+        var p = [];
+        line.forEach(w => {
+            var from = w.original;
+            var to = w.d || w.p;
+            t.push(`<span title='${to}'>${from}</span>`);
+            p.push(`<span title='${from}'>${to}</span>`);
+        });
+        txt.push(t.join(" "));
+        phn.push(p.join(" "));        
+    }
+
+    return {text:txt.join("\n"),phoneme:phn.join("\n")};
+}
+
+//======================================================================================
+//======================================================================================
+//  
+
+function parse_cmd(c)
+{
+    var s = '';
+    var q = 0;
+    var a = [];
+    var last;
+    function p()
+    {
+        if (s.length) {
+            a.push(s.trim());
+            s = '';
+        }
+    }
+
+    for (var i = 0; i < c.length; i++) {
+        switch (c[i]) {
+            case ' ':
+            case '\n':
+                if (!q)
+                    p();
+                else
+                    s += c[i];
+                break;
+            case '"':
+                if (last == "\\")
+                    s += c[i];
+                else {
+                    if (q)
+                        p();
+                    q ^= 1;
+                }
+                break;
+            default:
+                s += c[i];
+        }
+        last = c[i];
+    }
+    if (s.length)
+        a.push(s.trim());
+    return a;
+}
+
+function to_cmd(a)
+{
+    var txt = a.pop();
+    var cmd = a.join(" ");
+    if (cmd.length)
+        cmd += " ";
+    return cmd + '"' + txt + '"';
+}
+
+function cmdline2data(v)
+{
+    sam(parse_cmd(v));
+}
+
+function elist(q)
+{
+    return _q(q).innerText.split("\n");
+}
+
+function show_atari_data()
+{
+    var txt = [
+        ";   " + _adata.length + " bytes",
+        ";   " + ((_total_frames*1000/60)|0)/1000 + " seconds at " + ((_adata.length*8*60/_total_frames) | 0) + " bits/second",
+    ];
+    elist("#cmdline").forEach(line => txt.push(";   " + line));
+
+    txt = txt.concat(atari_data("speech",_adata).split("\n"));
+
+    if (_mouth != 128 || _throat != 128) {
+        txt.push(";   formants (mouth = " + _mouth + ", throat = " + _throat + ")");
+        txt = txt.concat(atari_data("vox_f1",vox_f1).split("\n"));
+        txt = txt.concat(atari_data("vox_f2",vox_f2).split("\n"));
+    }
+    _q("#output").innerText = txt.join("\n");
+}
+
+function defaults(args)
+{
+    function def(n,defv) {
+        var v = _q("#"+n).value;
+        if (v != defv) {
+            args.unshift(v);
+            args.unshift("-"+n);
+        }
+    }
+    def("pitch",64);
+    def("speed",72);
+    def("mouth",128);
+    def("throat",128);
+    return args;
+}
+
+// do a batch, collect and concatenate results
+async function sam_all(list,silent)
+{
+    var samples = [];
+    var data = [];
+    var args_list = [];
+    var phoneme_list = [];
+    _total_frames = 0;
+
+    for (var j = 0; j < list.length; j++) {
+        var args = list[j];
+        if (args[args.length-1][0] == '-')
+            args[args.length-1] = " " + args[args.length-1];    // insert leading space to avoid confusing app with switch: HACK!
+        var d = await do_sam(args);
+
+        var speed = 72;
+        var mouth = 128;
+        var throat = 128;
+        for (var i = 0; i < args.length; i++) {
+            if (args[i] == '-speed')
+                speed = parseInt(args[++i]);
+            if (args[i] == '-mouth')
+                mouth = parseInt(args[++i]);
+            if (args[i] == '-throat')
+                throat = parseInt(args[++i]);
+        }
+        var p = d.phonemes.trim();
+        if (p.length)
+            phoneme_list.push(p);
+        args_list.push(to_cmd(args));
+        samples = samples.concat(play_sam(d.data,speed,mouth,throat));
+        data = data.concat(_adata);
+    }
+
+    if (!silent) {
+        _player.set(samples,15720*2,"xcoded");
+        _player.play();
+    }
+
+    _q("#cmdline").innerText = args_list.join("\n");
+    if (phoneme_list.length)
+        _q("#phoneme").innerText = phoneme_list.join("\n");
+
+    // generate data
+    _adata = data;
+    show_atari_data();  // show merged data
+}
+
+function trim_list(list)
+{
+    while (list.length && list[list.length-1].length == 0)
+        list.pop();
+    return list;
+}
+
+function phoneme_sequence(list)
+{
+    list = trim_list(list);
+    _q("#phoneme").innerText = list.join("\n");
+    list = list.map(line => defaults(["-phonetic",line]));   // create a list of command lines
+    return sam_all(list);
+}
+
+// runs multiple times across lines of text
+// todo. split lines?
+function text_sequence(list,silent)
+{
+    list = trim_list(list);
+    var a = [];
+    list.forEach(line => {
+        line = line.trim();
+        if (line.length)
+            a.push(defaults([line]));
+    });
+    return sam_all(a,silent);
+}
+
+async function dictionary_sequence(list)
+{
+    list = trim_list(list);
+    await text_sequence(list,true);
+    var p = _q("#phoneme").innerText.split("\n");       // results in phoneme form
+    var patch = dictionary_patch(list,p);
+
+    _q("#text").innerHTML = patch.text;
+    _q("#phoneme").innerHTML = patch.phoneme;
+    await phoneme_sequence( _q("#phoneme").innerText.split("\n"));
+    _q("#phoneme").innerHTML = patch.phoneme;
+}
+
+// should command lines have defaults?
+function cmd_sequence(list)
+{
+    list = trim_list(list);
+    var a = [];
+    list.forEach(line => {
+        var args = parse_cmd(line);
+        if (args.length)
+            a.push(defaults(args));
+    });
+    sam_all(a);
+}
+
+// Some voice presets
+var _presets = {
+    "SAM":{speed:72,pitch:64,throat:128,mouth:128},
+    "Elf":{speed:72,pitch:64,throat:110,mouth:160},
+    "Little Robot":{speed:60,pitch:64,throat:190,mouth:190},
+    "Stuffy Guy":{speed:82,pitch:72,throat:110,mouth:105},
+    "Little Old Lady":{speed:82,pitch:32,throat:145,mouth:145},
+    "Extra-Terrestrial":{speed:100,pitch:64,throat:150,mouth:200},
+};
+
+function preset(n)
+{
+    n = _presets[n];
+    if (n) {
+        for (p in n)
+            _q("#"+p).value = n[p];
+    }
+    update_sliders();
+}
+
+var _examples = {
+   "hello":{
+        p:[
+        "/HEH3LOW8W, MAY4 NEHM IHZ SAE5M. AY3 AEM AH SAA3FTWEHR SPIY4CH SIH4NTHIXSAY7ZER - ",
+        "FOHR DHIY AHAHTAA4RIY TWEHNTIY SIHKS /HAH5NDRD KAANSOW5L.Q"
+        ]
+    },
+    "gettysberg":{
+        p:[
+        "AY WIHL NAW4 KWOW4T - DHAH GEH3TIYZBERG AHDREHS.",
+        "FOH3R SKOH4R AEND SEH4VUN YIY4RZ AHGOW8W, AWER FAA3DHERZ BRAO4T FOH5RTH - AAN DHIH4S KAA3NTIXNEHN8NT - EY",
+        "NYXUW2 NEY3SHUN.",
+        "KUNSIY4VD IHN LIH3BERTIY. AE5ND EH4DIHKEYTIXD TUW DHAX PRAA3PAXZIH3SHUN7-",
+        "DHAE4T AA2L MEH3N AA4R KRIYEY3TIHD IY3KWAHL.",
+        "NAA3WX3 WIY AAR EHNGEY4JD - IHN AH GREY3T SIH3VUL WAOR. TEH3STIYNX WHEH4DHER DHAE3T NEY4SHUNN4-",
+        "OHR EH2NIY NEY4SHUN SOW KAHNSIY3VD - AE4ND SOW DEH3DIHKEYTIXD - KAEN LAO4NX EHNDUX6R."
+        ]
+    },
+    "hamlet":{
+        p:[
+        "DHAX SAHLIH4LAHKWIY FRAHM /HAE3MLIHT - BAY WHIH4LYAHM SHEY4KSPIYR.",
+        ".TUW BIY5Y3,, OHR NAA3T - TUW BIY5IYIY., DHAE4T IHZ DHAH KWEH4SCHAHN.",
+        "WHEH4DHER TIH5Z NOW3BULER IHN DHAX MAA4IY7ND - TUW SAH4FER DHAX SLIH3NXZ AEND AE4ROWZ ",
+        " - AHV AWTQREY3JAHS FOH4RCHAHN. OH4R TUW TEY4K AA6RMZ AHGEH5NST, EY SIY4IY AHV TRAH3BULZ. ",
+        "AEND BAY4 AHAXPOW3ZIHNX- EH4ND DHEHM."
+        ]
+    },
+    "pledge":{
+        p:[
+        "AY PLEH3J AHLIY4JIXNS -TUX DHAX FLAE6G. AHV DHIY YUWNAY4TIXD STEY3TZ AHV AHMEH4RIHKAH.",
+        "AE5ND TUW3 DHAX RIYPAH4BLIHK - FOHR WHIHCH IHT STAENDZ. WHAH4N NEY3SHUN AH4NDER GAA5AXD.",
+        "IH4NDIXVIH3ZAXBUL. WIHTH LIH4BERTIY - AEND JAH4STIHS - FOHR AO6L."
+        ]
+    },
+    "sam":{
+        p:[
+        "WAH2NS AHPAA4N AH TAY7M3- DHEH5R WER6 MEH3NIY PIY4PUL /XUW OW5NND PER4SAHNUL KAHMPYUW5TERZ.",
+        "DHEY LAY3KD TUX YUW4Z DHEHR MAHSHIY3NZ-FOHR MEH3NIY THIHNXGZ. BAH4AH7-DHEY WER5 NAA4T VEH5RIY /HAE4PIY.",
+        "YUW SIY3Y7Y3 -DHEHR KAHMPYUW3 TTERZ KUXUH3DIXNTQTAO6K.",
+        "SOH3OW7--WAH4NDEY7-AH BRAE3ND NUW5 PRAA4DAHKTT-/XIH3T DHAH MAA3RKIXT.",
+        "IH4T WAHZ AH SPIY3CH SIH4NTHIXSAY7ZER.QBAH3AH7T,",
+        "IH4T /HAED TUW3 PRAA4BLUMZ. IHT KAO5ST TUW3 MAH3CH MAH2NIY7Y3-",
+        "-AE2AE8NNDD- AOL-DHAH-WERDZ-WER-SPOWKUN-IHN-DHAH-SEYM-TOWN--",
+        "AH3LAE8S-- NOW4BAADIY WAHZ VEH4RIY /HAE5PIY STIH4LL.",
+        "BAHTT- DHEH3EH8N-- AHLAO4NX KEY7M DOW3NT AE5SKK SAO5FTWEYR.WIHTH AH BRAE3ND NUW4 PROW4GRAEM. SAE3AE7M.",
+        "NAA2AW7- TAO4K WAHZ FAY4NULIY CHIY4IY7P-AEND EH4VRIYWAHN KUXUH5D AHFOW5RD AH SPIY4CH SIH3NTHAHSAY7ZER.",
+        "SOH3OW7-- EH4VRIYWAHN WIH6L LIX3V /HAE3PULIY EH5VER AE4FTER.",
+        "DHIY3 - EH7NDD.",
+        "YUW3 KAEN NAW4 OW4N YOHR OW3N KAA4PIY AHV SAE5M. YOH4R KUMPYUW3TER IHZ REH4DIY TUX TAOK.",
+        ]
+    },
+    "sea shells":{
+        t:[
+        "She sells sea shells. by the sea shore."
+        ]
+    },
+    "peppers":{
+        p:[
+        "PIY4TER PAY3PER PIH4KT AH PEH4K AHV PIH4KULD PEH4PERZ."
+        ]
+    },
+    "peppers text":{
+        t:[
+        "Peter Piper picked a peck of pickled peppers."
+        ]
+    },
+    "daisy": {
+        c:[
+        ["-pitch","45","-speed","81","-phonetic","DEHEHEHEHEHEHEHEHEHEY"],
+        ["-pitch","48","-speed","96","-phonetic","ZIYIYIYIYIYIYIYIYIYIY"],
+        ["-pitch","63","-speed","81","-phonetic","DEHEHEHEHEHEHEHEHEHEY"],
+        ["-pitch","77","-speed","96","-phonetic","ZIYIYIYIYIYIYIYIYIYIY"],
+        ["-pitch","70","-speed","124","-phonetic","GIHV"],
+        ["-pitch","62","-speed","108","-phonetic","MIYIY"],
+        ["-pitch","62","-speed","101","-phonetic","YOHR"],
+        ["-pitch","76","-speed","96","-phonetic","AEAEAEAENN"],
+        ["-pitch","63","-speed","80","-phonetic","SER"],
+        ["-pitch","79","-speed","108","-phonetic","TRUXUXUXUXUXUXUXUXUXUXUXUX"],
+
+        ["-pitch","100","-speed","0","-phonetic","--"],
+        ["-pitch","77","-speed","100","-phonetic","AAAAAAAAAAIYIYMM"],
+        ["-pitch","53","-speed","91","-phonetic","/HAEAEAEAEAEAEFF"],
+        ["-pitch","52","-speed","96","-phonetic","KREHEHEHEHIYIY"],
+        ["-pitch","59","-speed","96","-phonetic","ZZIYIYIYIYIYIY-"],
+        ["-pitch","74","-speed","80","-phonetic","OHOW"],
+        ["-pitch","66","-speed","96","-phonetic","VAHER"],
+        ["-pitch","59","-speed","96","-phonetic","DHIYIYIY"],
+        ["-pitch","59","-speed","80","-phonetic","LAHAHAHAHAHAHAHAHV"],
+        ["-pitch","54","-speed","96","-phonetic","AHAHAHV"],
+        ["-pitch","55","-speed","108","-phonetic","YUXUXUXUXUXUXUXUXUXUXUXUX"],
+
+
+        ["-pitch","100","-speed","0","-phonetic","---"],
+        ["-pitch","55","-speed","108","-phonetic","IHT"],
+        ["-pitch","53","-speed","96","-phonetic","WOWNNT BIYIYIY"],
+        ["-pitch","59","-speed","80","-phonetic","AHAHAHAH"],
+        ["-pitch","49","-speed","81","-phonetic","STAAAAIYL"],
+        ["-pitch","51","-speed","96","-phonetic","LIXSHSH-"],
+        ["-pitch","57","-speed","80","-phonetic","MEHEHRR"],
+        ["-pitch","61","-speed","96","-phonetic","IHIHIHIHIHIHIHIHIHJ"],
+
+        ["-pitch","100","-speed","0","-phonetic","--"],
+        ["-pitch","61","-speed","108","-phonetic","AAIY"],
+        ["-pitch","55","-speed","96","-phonetic","KAEAEAEAENNT"],
+        ["-pitch","65","-speed","80","-phonetic","AHAH"],
+        ["-pitch","73","-speed","80","-phonetic","FFOHOHOHOHRRDXD"],
+        ["-pitch","65","-speed","80","-phonetic","AHAH"],
+        ["-pitch","73","-speed","81","-phonetic","KEHEHRR"],
+        ["-pitch","79","-speed","100","-phonetic","IHIHIHIHIHIHJ"],
+
+        ["-pitch","100","-speed","0","-phonetic","--"],
+        ["-pitch","83","-speed","80","-phonetic","BAHAHDXT"],
+        ["-pitch","61","-speed","80","-phonetic","YUXUXUXUXL"],
+        ["-pitch","51","-speed","96","-phonetic","LUHDXK"],
+        ["-pitch","53","-speed","96","-phonetic","SWIYIYIYIYIYDXT"],
+        ["-pitch","83","-speed","80","-phonetic","AHAHQP"],
+        ["-pitch","66","-speed","96","-phonetic","AAAAAAAANN"],
+        ["-pitch","54","-speed","96","-phonetic","DHAHAH"],
+        ["-pitch","53","-speed","108","-phonetic","SIYIYDXT"],
+        ["-pitch","54","-speed","80","-phonetic","AHAHV"],
+        ["-pitch","50","-speed","80","-phonetic","EHIY"],
+        ["-pitch","49","-speed","81","-phonetic","BAAIY"],
+        ["-pitch","49","-speed","96","-phonetic","SIHDXK"],
+        ["-pitch","61","-speed","96","-phonetic","ULLL"],
+        ["-pitch","55","-speed","80","-phonetic","BIHIHIHIHLDXT"],
+        ["-pitch","81","-speed","80","-phonetic","FOHOHR"],
+        ["-pitch","61","-speed","96","-phonetic","TUXUXUXUXUXUXUXUXUXUXUXUXUXUXUX"]
+        ]
+    },
+    "horse":{
+        t:[
+        "A horse walks into a bar, and the bartender says,",
+        "Why the long face.",
+        ]
+    },
+    "skeleton":{
+        t:[
+        "A skeleton walks into a bar, orders a beer, and a mop.",
+        ]
+    },
+    "sticky":{
+        p:[
+            "WHAHTSB BRAWN AEND STIHKIY?",
+            "AH STIHK."
+        ]
+    },
+};
+
+// Some examples
+function examples(n)
+{
+    n = _examples[n];
+    if (n) {
+        if (n.p)
+            phoneme_sequence(n.p);
+        if (n.t)
+            text_sequence(n.t);
+        if (n.c)
+            sam_all(n.c);
+    }
+}
+
+//======================================================================================
+//======================================================================================
+
+</script>
+<body>
+<div class="floater atari keyboard"></div>
+<div class="floater disassembly" hidden>
+    <span class='close-icon' onclick='this.parentElement.hidden = true'></span>
+    <div class='draggable'>
+    </div>
+    <pre id='disassembly'></pre>
+</div>
+
+<div style="display:flex;flex-direction:row">
+
+<nav style="min-width:352px; max-width:352px; margin-right:8px;" id="toc">
+<div id="menu_container" ></div>
+<p style="text-align:center;color:#AAA;font-weight:300">
+    <span style="font-size:x-large;color:#333">SAM2600</span><br>
+    <a href="https://github.com/rossumur/SAM2600">https://github.com/rossumur/SAM2600</a><br/><br/>
+    <div id="examples" onclick='examples(event.target.innerText)'></div>
+    <pre id="log"></pre>
+</p>
+<input type="file" id="fe" multiple style="display:none">
+</nav>
+
+<main style="border:solid 1px #CCC">
+    <div id="tabs" style="max-width:852px">
+        <div id="sliders"><br>
+            Voice<br>
+            <em id="pitch_">pitch</em><input type="range" id="pitch" min="0" max="255" value="64" /><br>
+            <em id="speed_">speed</em><input type="range" id="speed" min="1" max="255" value="72" /><br>
+            <em id="mouth_">mouth</em><input type="range" id="mouth" min="0" max="255" value="128" /><br>
+            <em id="throat_">throat</em><input type="range" id="throat" min="0" max="255" value="128" />
+        </div>
+        <div id="presets" onclick='preset(event.target.innerText)'>
+            <b>SAM</b><b>Elf</b><br>
+            <b>Little Robot</b><b>Stuffy Guy</b><br>
+            <b>Little Old Lady</b><b>Extra-Terrestrial</b>
+        </div>
+        <hr>
+        <div id="consoles">
+            <div class='console'>
+            Convert plain text to phonemes
+            <div style='float:right'>
+                <input type="button" value="Rules Translation" onclick='text_sequence(_q("#text").innerText.split("\n"))'/>
+                <input type="button" value="Dictionary Translation" onclick='dictionary_sequence(_q("#text").innerText.split("\n"))'/>
+            </div>
+            <pre contenteditable="true" id="text"></pre>
+            </div>
+
+            <div class='console'>
+            Convert phonemes to sound
+            <input style='float:right' type="button" value="Phonemes" onclick='phoneme_sequence(_q("#phoneme").innerText.split("\n"))'/><br/>
+            <pre contenteditable="true" id="phoneme"></pre>
+            </div>
+
+            <div class='console'>
+            Execute S.A.M. command line
+            <input style='float:right' type="button" value="Command Line" onclick='cmd_sequence(_q("#cmdline").innerText.split("\n"))'/><br/>
+            <pre contenteditable="true" id="cmdline"></pre>
+            </div>
+
+            <div class='console'>
+            Output sound data
+            <pre contenteditable="true"  style='white-space: pre;' id="output"></pre>
+            </div>
+    </div>
+     </div>
+</main>
+</div>
+
+<script src="js/sam_bridge_wasm.js"></script>
+<script>
+
+//======================================================================================
+//======================================================================================
+// WASM version of Sebastian Macke's reverse engineered version of
+// Don't Ask Software's "Software Automatic Mouth" written by Mark Barton in 1982 
+// http://www.retrobits.net/atari/sam.shtml
+//
+// Command line options + text impute produce phonemes.
+// Rules are inspired by the 1976 Navy Research Laboratory Report
+// "Automatic Translation of English Text to Phonetics by Means of Letter-to-Sound Rules"
+//      https://apps.dtic.mil/dtic/tr/fulltext/u2/a021929.pdf
+//      https://amhistory.si.edu/archives/speechsynthesis/ss_nrl.htm
+//
+// The code is patched to produce samples that encode phoneme/run/mix/pitch values
+// These samples are further compressed into a compact runtume representation for the 2600
+//
+
+// load 
+var _wasm_promise = new Promise(function(resolve, reject) {
+    function get_bin(wasm64)
+    {
+        var bin = atob(wasm64);
+        var buffer = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++)
+            buffer[i] = bin.charCodeAt(i);
+        return buffer;
+    }
+    Module = {};
+    Module.wasmBinary = get_bin(_wasm);
+    Module.noInitialRun = true;
+    Module.onRuntimeInitialized = _ => resolve(Module.callMain);
+    Module.print = s => {
+        //console.log(s);
+        if (s[0] == '{') {
+            try {
+                Module.onjson(JSON.parse(s))
+            }
+            catch (e) {
+                console.log(e);
+            }
+        }
+    }
+});
+
+// invoke sam, get back phonemes and samples
+async function do_sam(args)
+{
+    var main = await _wasm_promise;
+    var dst = {
+        phonemes:'',
+        input:'',
+        data:[]
+    }
+    Module.onjson = function(j) {
+        if (j.blend)
+            dst.data = dst.data.concat(j.blend);
+        if (j.input)
+            dst.input = j.input;
+        if (j.phonemes)
+            dst.phonemes = j.phonemes;
+        dst.args = args;
+    }
+    main(args);
+    return dst;
+}
+</script>
+
+<script src="js/sam_bridge.js"></script>
+<script src="js/sam_dictionary.js" charset="utf-8"></script>
+<script src="js/sam.js" charset="utf-8"></script>
+<script src="js/sam_core.js" charset="utf-8"></script>
+<script src="js/audio.js" charset="utf-8"></script>
+<script src="js/atari.js" charset="utf-8"></script>
+<script src="js/atari_sam_wav.js" charset="utf-8"></script>
+<script>load();</script>
+</body>
+</html>
