@@ -52,6 +52,9 @@ function SamplePlayer(ctx) {
         },
         play: function()
         {
+            if (source)
+                source.disconnect(ctx.destination);
+            
             var buffer = ctx.createBuffer(1,buf.length,kRate);
             var data = buffer.getChannelData(0);
             for (var i = 0; i < buf.length; i++)

@@ -741,7 +741,9 @@ function load()
     var ex = [];
     for (var n in _examples)
         ex.push("<b>" + n + "</b>");
-    _q("#examples").innerHTML = ex.join("<br>");
+    _q("#examples").innerHTML = ex.join("");
+    parse_cmudict();
+    window.scrollTo(0,0);
 }
 
 function toggle(eid)
@@ -798,21 +800,27 @@ function log_flush()
 // Basically patches phonemes after a text translation
 
 var _dict = 0;
-function dictionary_patch(text,phonemes)
+function sam_dictionary(txt)
 {
     if (!_dict)
         _dict = dictionary();
+    return _dict[txt.toLowerCase()];
+}
+
+function dictionary_patch(text,phonemes,use_cmu)
+{
+    var dict = use_cmu ? cmu_dictionary : sam_dictionary
 
     function translate_line(t,p)
     {
         var line = [];
         for (var i = 0; i < t.length; i++) {
-            var txt = t[i].trim();
+            var txt = t[i].trim();  // TODO remove punctuation
             line.push({
                 original:txt,
                 t:txt,
                 p:p[i],
-                d:_dict[txt.toLowerCase()]
+                d:dict(txt)
             });
         }
         return line;
@@ -842,8 +850,66 @@ function dictionary_patch(text,phonemes)
         txt.push(t.join(" "));
         phn.push(p.join(" "));        
     }
-
     return {text:txt.join("\n"),phoneme:phn.join("\n")};
+}
+
+//  Convert ARPABET to SAM
+// primary stress 4
+// secondary stress 5
+
+var _cmu = {};
+var _sam_phonemes = {};
+function cmu2sam(w)
+{
+    if (!w)
+        return null;
+    var s = [];
+    for (var i = 1; i < w.length; i++) {
+        var p = w[i];
+        if (p.length) {
+            var stress = '';
+            var n = p.length-1;
+            switch (p[n]) {
+                case '0': stress = ''; p = p.substr(0,n); break;  // syllable;
+                case '1': stress = '4'; p = p.substr(0,n); break;
+                case '2': stress = '5'; p = p.substr(0,n); break;
+            }
+            if (!_sam_phonemes[p])
+                console.log("BAD ARPABET PHONEME " + p);
+            else
+                s.push(_sam_phonemes[p]+stress);
+        }
+    }
+    return s.join('');
+}
+
+function parse_cmudict()
+{
+    _sam_phonetics.split("\n").forEach(s => {
+        if (s.length && s[0] != '!') {
+            var w = s.split(" ");
+            var p = w[0];
+            switch (p) {
+                case "/H": p = 'HH';    break;
+                case "J": p = 'JH';     break;
+                case "NX": p = 'NG';    break;
+            }
+            _sam_phonemes[p] = w[0];
+        }
+    });
+    var d = _cmudict.split("\n");
+    d.forEach(s => {
+        if (s.length && !(s[0] == ';' && s[1] == ';')) {
+            var w = s.split(' ');
+            _cmu[w[0]] = w;
+        }
+    });
+    console.log("loaded " + Object.keys(_cmu).length + " cmu dictionary entries");
+}
+
+function cmu_dictionary(txt)
+{
+    return cmu2sam(_cmu[txt.toUpperCase()]);
 }
 
 //======================================================================================
@@ -1022,12 +1088,12 @@ function text_sequence(list,silent)
     return sam_all(a,silent);
 }
 
-async function dictionary_sequence(list)
+async function dictionary_sequence(list,use_cmu)
 {
     list = trim_list(list);
     await text_sequence(list,true);
     var p = _q("#phoneme").innerText.split("\n");       // results in phoneme form
-    var patch = dictionary_patch(list,p);
+    var patch = dictionary_patch(list,p,use_cmu);
 
     _q("#text").innerHTML = patch.text;
     _q("#phoneme").innerHTML = patch.phoneme;
@@ -1214,6 +1280,30 @@ var _examples = {
             "AH STIHK."
         ]
     },
+    "macintosh": {
+        p:[
+        "/HEH3LOW8W, AY4 AE4M MAESIHNTAASH, IH4T SHUH4R IH4Z GREY4T TUW4 GEH4T AW4T AH4V DHAE4T BAEG ,,",
+        "AH5NAHKAH4STAHMD AE4Z AY4 AE4M TUW4 PAH4BLIHK SPIY4KIHNX8,",
+        "AY4D LAY4K TUW4 SHEH4R WIH4DH YUW4 AH MAE4KSAHM AY THAO6T AHV.",
+        "DHAH FER4ST TAY4M AY4 MEH4T AEN AY4,BIY4,EH4M MEY6NFREYM.",
+        "NEHVER TRAH5ST AH KAHMPYUWTER DHAET YUW KAENT LIH6FT.",
+        "AABVIHAXSLIY, AY KAEN TAO4K, BAH4T RAY4T NAW4. AY4D LAY4K TUW4 SIH4T BAE4K AHND LIHSEHN ,,",
+        "SOW IH4T IH4Z WIH4DH KAHNSIH4DERAHBAHL PRAY5D, DHAE4T AY4 IH5NTRAHDUW4S AH MAEN,",
+        "/HUW4 /HAE4Z BIH4N LAY4K AH FAA6DHER TUW4 MIY ,,",
+        "ST6IYIY3VV JAA6BZZ4,"
+        ]
+    },
+    "hawking": {
+        t:[
+        "Remember to look up at the stars,",
+        "and not down at your feet.",
+        "Try to make sense of what you see,",
+        "and wonder about what makes the universe exist.",
+        "Be curious.",
+        "And however difficult life may seem,",
+        "there is always something you can do and succeed at.",
+        ]
+    }
 };
 
 // Some examples
@@ -1251,6 +1341,91 @@ function examples(n)
     <span style="font-size:x-large;color:#333">SAM2600</span><br>
     <a href="https://github.com/rossumur/SAM2600">https://github.com/rossumur/SAM2600</a><br/><br/>
     <div id="examples" onclick='examples(event.target.innerText)'></div>
+    <pre style="color:#888;padding-left:48px">
+<b>VOWELS</b>
+IY  feet
+IH  pin
+EH  beg
+AE  Sam
+AA  pot
+AH  budget
+AO  talk
+OH  cone
+UH  book
+UX  loot
+ER  bird
+AX  gallon
+IX  digit
+
+<b>DIPTHONGS</b>
+EY  made
+AY  high
+OY  boy
+AW  how
+OW  slow
+UW  crew
+
+<b>VOICED CONSONANTS</b>
+R   red
+L   allow
+W   away
+WH  whale
+Y   you
+M   Sam
+N   man
+NX  song
+B   bad
+D   dog
+G   again
+J   judge
+Z   zoo
+ZH  pleasure
+V   seven
+DH  then
+
+<b>UNVOICED CONSONANTS</b>
+S   Sam
+SH  fish
+F   fish
+TH  thin
+P   poke
+T   talk
+K   cake
+CH  speech
+/H  ahead
+
+<b>SPECIAL PHONEMES</b>
+UL  settle (= AXL)
+UM  astronomy (= AXM)
+UN  function (= ASN)
+Q   kitt-en (glottal stop)
+
+<b>SAM INTERNAL</b>
+YX diphthong ending
+WX diphthong ending
+RX R after a vowel
+LX L after a vowel
+/X H before a non-front vowel or consonant
+DX "flap" as in pity
+
+<b>PUNCTUATION</b>
+-   short pause in the speech
+,   pause double that of the hyphen
+.   pause and also causes the pitch to fall
+?   pause and also causes the pitch to rise
+
+<b>STRESS</b>
+1 = very emotional stress
+2 = very emphatic stress
+3 = rather strong stress
+4 = ordinary stress
+5 = tight stress
+6 = neutral (no pitch change) stress
+7 = pitch-dropping stress
+8 = extreme pitch-dropping stress
+
+</pre>
+
     <pre id="log"></pre>
 </p>
 <input type="file" id="fe" multiple style="display:none">
@@ -1276,7 +1451,8 @@ function examples(n)
             Convert plain text to phonemes
             <div style='float:right'>
                 <input type="button" value="Rules Translation" onclick='text_sequence(_q("#text").innerText.split("\n"))'/>
-                <input type="button" value="Dictionary Translation" onclick='dictionary_sequence(_q("#text").innerText.split("\n"))'/>
+                <input type="button" value="SAM Dictionary" onclick='dictionary_sequence(_q("#text").innerText.split("\n"))'/>
+                <input type="button" value="CMU Dictionary" onclick='dictionary_sequence(_q("#text").innerText.split("\n"),1)'/>
             </div>
             <pre contenteditable="true" id="text"></pre>
             </div>
@@ -1378,6 +1554,7 @@ async function do_sam(args)
 <script src="js/audio.js" charset="utf-8"></script>
 <script src="js/atari.js" charset="utf-8"></script>
 <script src="js/atari_sam_wav.js" charset="utf-8"></script>
+<script src="js/cmudict-0.7b.js" charset="utf-8"></script>
 <script>load();</script>
 </body>
 </html>
