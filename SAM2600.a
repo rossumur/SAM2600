@@ -3,6 +3,14 @@
         include "macro.h"
         include "xmacro.h"
 
+;=============================================================
+; SAM2600
+; by Peter Barrett 2010
+;
+; Big thanks to Mark Barton for creating S.A.M. and Macintalk
+; and Sebastian Macke for porting S.A.M. to C
+; 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Variables segment
 
@@ -314,7 +322,7 @@ vox_task
 .2	lda	VOX_PHONEME	; check for zero runs, specials
 	sec
         sbc	#80
-        bmi	.3		; 80-111 repesent silence runs
+        bmi	.3		; 80-127 repesent silence runs
         asl
         asl
         asl
