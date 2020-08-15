@@ -3,6 +3,10 @@ A software speech synthesizer for the Atari 2600. Make your 2600 talk! Sing! Say
 
 Add voice to your own games and relive the glory days when computer speech had a charming personality and bounded intelligibility.
 
+![Hello](img/hello.jpg)
+
+See it in action on [YouTube](https://youtu.be/abL_H784Vck). Source code at https://github.com/rossumur/SAM2600
+
 ## A Brief History of Speech Synthesis
 While mechanical speech synthesis dates back to the [18th century](https://en.wikipedia.org/wiki/Wolfgang_von_Kempelen%27s_speaking_machine), the first successful attempt based on electronics was ['An Electrical Analogue of the Vocal Organs'](https://www.nature.com/articles/110311a0) by John Q. Stewart in 1922. It was capable of saying such interesting things as **mama, anna, wow-wow, and yi-yi**.
 
