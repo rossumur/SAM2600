@@ -1,5 +1,5 @@
 # SAM2600
-A software speech synthesizer for the Atari 2600. Make your 2600 talk! Sing! Say rude words!
+## A software speech synthesizer for the Atari 2600. Make your 2600 talk! Sing! Say rude words!
 
 Add voice to your own games and relive the glory days when computer speech had a charming personality and bounded intelligibility.
 
@@ -14,7 +14,7 @@ While mechanical speech synthesis dates back to the [18th century](https://en.wi
 
 His circuit consisted of a buzzer to simulate the vocal cords and a pair of oscillators to simulate the resonance of the mouth and throat. By varying the capacitance, resistance and inductance of the circuit he could produce a series of vowel-like sounds; probably the very first example of circuit bending. I would love to see someone recreate this and learn how to play it.
 
-These resonance frequencies are known as **formants**. The human vocal tract has lots of potential for complicated resonances in the mouth, throat, nasal cavities etc. The mouth formant (**f1**) and throat format (**f2**) are critical to creating sounds that are recognizable as speech. The ratio on **f1** to **f2** define the sound of various vowels.
+These resonance frequencies are known as **formants**. The human vocal tract has lots of potential for complicated resonances in the mouth, throat, nasal cavities etc. The mouth formant (**f1**) and throat format (**f2**) are critical to creating sounds that are recognizable as speech. The ratio of **f1** to **f2** defines the sound of various vowels.
 
 The overall pitch or fundamental frequency of speech comes from oscillations of the vocal cords: the buzzer in this model. Expressive speech depends a lot on correct modulation of pitch. This fundamental frequency is typically known as **f0**.
 
@@ -101,7 +101,7 @@ The speech engine uses a stream of phonemes that index a table of formant freque
 
 If the phoneme is unvoiced ('S' in *She Sells Sea Shells*) the engine selects hardware generated noise of the appropriate frequency and volume.
 
-In voiced phonemes, formant frequencies are used with sinwave DDS to produce two of the three tones required for intelligble speech. The two values are summed together and output to a 4 bit DAC: the channel volume register **AUDV1**.
+In voiced phonemes, formant frequencies are used with sinewave DDS to produce two of the three tones required for intelligible speech. The two values are summed together and output to a 4 bit DAC: the channel volume register **AUDV1**.
 
 Pitch is incredibly important to reproducing intelligible speech and given we only have ~70 cycles to produce a sample, modulation of **f1,f2** by the vocal cord pulse would seem impossible. SAM had a brilliant trick for this: resetting the DDS counters every pitch period produces a nice **f0** buzz with very little CPU time.
 
