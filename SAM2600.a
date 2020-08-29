@@ -432,7 +432,7 @@ vox_task
 ;	50..7F -> pause of 1..48 vbl frames
 
 .get_byte
-        lda	(VOX_PTR),x
+        lda	(VOX_PTR,x)
         beq	.1
         inc	VOX_PTR
         bne	.0
