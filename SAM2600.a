@@ -1,7 +1,6 @@
 	processor 6502
         include "vcs.h"
         include "macro.h"
-        include "xmacro.h"
 
 ;=============================================================
 ; SAM2600
@@ -282,7 +281,9 @@ vox_task
         jmp	.linez		; no phase change, proceed to blend
         
 .phase_change
-	TIMER_SETUP 7		; start in v:-37
+	lda	#7	; start in v:-37
+	sta	WSYNC
+	sta	TIM64T
 
 	lda	VOX_FLAGS
         lda	#VOX_FLAG_MIXING
